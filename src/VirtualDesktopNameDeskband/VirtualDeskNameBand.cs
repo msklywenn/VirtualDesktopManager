@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 namespace VirtualDesktopNameDeskband
 {
     [ComVisible(true)]
-    [DisplayName("VirtualDeskNameDeskband")]
+    [DisplayName("Virtual Desktop Manager")]
     public class VirtualDeskNameBand : SharpDeskBand
     {
         private DeskbandControl deskbandControl;
@@ -17,7 +17,7 @@ namespace VirtualDesktopNameDeskband
             HasVariableHeight = false,
             IsSunken = false,
             ShowTitle = true,
-            Title = "VirtualDeskNameDeskband",
+            Title = "Virtual Desktop Manager",
             UseBackgroundColour = false,
             AlwaysShowGripper = false
         };
