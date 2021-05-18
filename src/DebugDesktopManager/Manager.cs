@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Runtime.InteropServices;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace DebugDesktopManager
@@ -24,23 +24,30 @@ namespace DebugDesktopManager
             public int desktop;
         }
 
-        List<WindowInfo> windows = new List<WindowInfo>();
+        // Outside references
+        readonly PictureBox pictureBox;
+
+        // Work variables
+        readonly List<WindowInfo> windows = new List<WindowInfo>();
         Rectangle screen;
         int desktopCount;
         IntPtr pickedWindow = IntPtr.Zero;
         int pickX, pickY;
         int pickMoveX, pickMoveY;
+        bool pickedFromAnotherDesktop;
 
-        PictureBox pictureBox;
+        // Disposables
+        readonly Pen foregroundWindowPen;
+        readonly Pen otherWindowPen;
+        readonly Pen pickedWindowPen;
+        readonly SolidBrush activeDesktopBrush;
 
-        Pen activeWindowPen;
-        Pen otherWindowPen;
-        Pen pickedWindowPen;
-        SolidBrush activeDesktopBrush;
+        Win32.EnumWindowsProc filterWindows;
+        Win32.WinEventProc eventListener;
 
         public void Dispose()
         {
-            activeWindowPen.Dispose();
+            foregroundWindowPen.Dispose();
             otherWindowPen.Dispose();
             pickedWindowPen.Dispose();
             activeDesktopBrush.Dispose();
@@ -53,10 +60,13 @@ namespace DebugDesktopManager
             if (pictureBox.Image == null)
                 pictureBox.Image = new Bitmap(pictureBox.ClientRectangle.Width, pictureBox.ClientRectangle.Height);
 
-            activeWindowPen = new Pen(Color.Gray);
+            foregroundWindowPen = new Pen(Color.Red);
             otherWindowPen = new Pen(Color.DarkGray);
             pickedWindowPen = new Pen(Color.White);
             activeDesktopBrush = new SolidBrush(Color.FromArgb(32, 255, 255, 255));
+
+            filterWindows = new Win32.EnumWindowsProc(FilterWindow);
+            eventListener = new Win32.WinEventProc(EventListener);
 
             RefreshWindows();
             DrawWindows();
@@ -66,20 +76,30 @@ namespace DebugDesktopManager
             pictureBox.MouseUp += ChangeDesktop;
             pictureBox.MouseLeave += MouseLeft;
 
-            IntPtr hInstance = Marshal.GetHINSTANCE(typeof(Program).Module);
-            Win32.SetWindowsHookEx(Win32.HookType.WH_SHELL,
-                delegate (int code, IntPtr wParam, IntPtr lParam) {
-                    if (code < 0) return Win32.CallNextHookEx(IntPtr.Zero, code, wParam, lParam);
-                    // wParam contains window handle in both cases
-                    const uint HSHELL_WINDOWCREATED = 1;
-                    const uint HSHELL_WINDOWDESTROYED = 2;
-                    if (code == HSHELL_WINDOWCREATED || code == HSHELL_WINDOWDESTROYED)
-                    {
-                        RefreshWindows();
-                        DrawWindows();
-                    }
-                    return IntPtr.Zero;
-                }, hInstance, 0);
+            Win32.SetWinEventHook(interestingEvents.Min(), interestingEvents.Max(),
+                IntPtr.Zero, eventListener, 0, 0, Win32.WinEventFlags.WINEVENT_OUTOFCONTEXT);
+        }
+
+        static readonly Win32.WinEvents[] interestingEvents = 
+        {
+            Win32.WinEvents.EVENT_SYSTEM_SWITCHEND,
+            Win32.WinEvents.EVENT_SYSTEM_MOVESIZEEND,
+            Win32.WinEvents.EVENT_SYSTEM_MINIMIZESTART,
+            Win32.WinEvents.EVENT_SYSTEM_MINIMIZEEND,
+            Win32.WinEvents.EVENT_SYSTEM_FOREGROUND,
+            Win32.WinEvents.EVENT_OBJECT_LOCATIONCHANGE,
+        };
+
+        void EventListener(IntPtr hWinEventHook, uint eventType,
+            IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
+        {
+            const int OBJID_CURSOR = -9;
+            if (idObject != OBJID_CURSOR && interestingEvents.Contains((Win32.WinEvents)eventType))
+            {
+                RefreshWindows();
+                DrawWindows();
+                pictureBox.Refresh();
+            }
         }
 
         private void MouseLeft(object sender, EventArgs e)
@@ -103,6 +123,8 @@ namespace DebugDesktopManager
                     pickedWindow = window.handle;
                     pickX = e.X;
                     pickY = e.Y;
+                    int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
+                    pickedFromAnotherDesktop = current != window.desktop;
                     break;
                 }
             }
@@ -143,7 +165,8 @@ namespace DebugDesktopManager
                 desktop.MoveWindow(pickedWindow);
                 RefreshWindows();
 
-                if (VirtualDesktop.Desktop.FromIndex(desktopIndex).IsVisible)
+                int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
+                if (desktopIndex == current && pickedFromAnotherDesktop)
                 {
                     Win32.SetForegroundWindow(pickedWindow);
                 }
@@ -194,36 +217,38 @@ namespace DebugDesktopManager
             desktopCount = VirtualDesktop.Desktop.Count;
 
             windows.Clear();
-            Win32.EnumWindows(delegate (IntPtr window, IntPtr lParam)
+            Win32.EnumWindows(filterWindows, IntPtr.Zero);
+        }
+
+        bool FilterWindow(IntPtr window, IntPtr lParam)
+        {
+            if (IsInterestingWindow(window))
             {
-                if (IsInterestingWindow(window))
+                var desktopID = VirtualDesktop.DesktopManager.VirtualDesktopManager.GetWindowDesktopId(window);
+                var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
+                int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
+
+                Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
+                Win32.ClientToScreen(window, ref topLeft);
+
+                Win32.GetClientRect(window, out Win32.RECT rect);
+                int clientWidth = rect.Right;
+                int clientHeight = rect.Bottom;
+
+                windows.Add(new WindowInfo()
                 {
-                    var desktopID = VirtualDesktop.DesktopManager.VirtualDesktopManager.GetWindowDesktopId(window);
-                    var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
-                    int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
-
-                    Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
-                    Win32.ClientToScreen(window, ref topLeft);
-
-                    Win32.GetClientRect(window, out Win32.RECT rect);
-                    int clientWidth = rect.Right;
-                    int clientHeight = rect.Bottom;
-
-                    windows.Add(new WindowInfo()
+                    handle = window,
+                    rectangle = new Rectangle()
                     {
-                        handle = window,
-                        rectangle = new Rectangle()
-                        {
-                            x = topLeft.X,
-                            y = topLeft.Y,
-                            width = clientWidth,
-                            height = clientHeight,
-                        },
-                        desktop = index
-                    });
-                }
-                return true; // continue enumeration
-            }, IntPtr.Zero);
+                        x = topLeft.X,
+                        y = topLeft.Y,
+                        width = clientWidth,
+                        height = clientHeight,
+                    },
+                    desktop = index
+                });
+            }
+            return true; // continue enumeration
         }
 
         void DrawWindows()
@@ -242,7 +267,7 @@ namespace DebugDesktopManager
                 graphics.FillRectangle(activeDesktopBrush, screen.width * activeDesktop * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height);
 
                 // windows seems to list from front to back
-                // we want to paint in reverse order
+                // we want to paint from back to front
                 for (int i = windows.Count - 1; i >= 0; i--)
                 {
                     var window = windows[i];
@@ -262,7 +287,7 @@ namespace DebugDesktopManager
                     if (pickedWindow == window.handle)
                         pen = pickedWindowPen;
                     else if (foreground == window.handle)
-                        pen = activeWindowPen;
+                        pen = foregroundWindowPen;
                     graphics.DrawRectangle(pen, x, y, width, height);
                 }
             }
