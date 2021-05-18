@@ -60,8 +60,8 @@ namespace DebugDesktopManager
             if (pictureBox.Image == null)
                 pictureBox.Image = new Bitmap(pictureBox.ClientRectangle.Width, pictureBox.ClientRectangle.Height);
 
-            foregroundWindowPen = new Pen(Color.Red);
-            otherWindowPen = new Pen(Color.DarkGray);
+            foregroundWindowPen = new Pen(Color.DarkGray);
+            otherWindowPen = new Pen(Color.DimGray);
             pickedWindowPen = new Pen(Color.White);
             activeDesktopBrush = new SolidBrush(Color.FromArgb(32, 255, 255, 255));
 
