@@ -43,8 +43,9 @@ class Manager : IDisposable
     readonly SolidBrush textBrush;
     readonly Font font;
 
-    Win32.EnumWindowsProc filterWindows;
-    Win32.WinEventProc eventListener;
+    // store delegates to avoid them being garbage collected in between calls from native
+    readonly Win32.EnumWindowsProc filterWindows;
+    readonly Win32.WinEventProc eventListener;
 
     public void Dispose()
     {
@@ -290,7 +291,7 @@ class Manager : IDisposable
     {
         using (var graphics = Graphics.FromImage(pictureBox.Image))
         {
-            graphics.Clear(Color.Black);
+            graphics.Clear(Color.Transparent);
 
             float scaleX = pictureBox.Image.Width / (float)screen.width / desktopCount;
             float scaleY = pictureBox.Image.Height / (float)screen.height;
