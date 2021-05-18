@@ -4,7 +4,7 @@ This is a deskband to show and move windows across virtual desktops. It is forke
 
 ## Functions
 
-This deskband shows the windows of all the virtual desktops. A window can be moved from one virtual desktop by drag & dropping it inside the deskand view.
+This deskband shows miniatures of windows of all the virtual desktops. A window can be moved from one virtual desktop by drag & dropping it inside the deskband view.
 
 <!-- ![Te](assets/taskbar.png) -->
 
