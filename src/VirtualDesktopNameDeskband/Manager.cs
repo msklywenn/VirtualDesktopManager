@@ -321,6 +321,7 @@ class Manager : IDisposable
             });
 
             // display virtual desktop number
+            graphics.TextRenderingHint |= System.Drawing.Text.TextRenderingHint.AntiAlias;
             StringFormat format = new StringFormat() {
                 LineAlignment = StringAlignment.Center,
                 Alignment = StringAlignment.Center,
