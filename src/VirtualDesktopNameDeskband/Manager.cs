@@ -39,6 +39,9 @@ class Manager : IDisposable
     readonly Pen otherWindowPen;
     readonly Pen pickedWindowPen;
     readonly SolidBrush activeDesktopBrush;
+    readonly SolidBrush windowBackgroundBrush;
+    readonly SolidBrush textBrush;
+    readonly Font font;
 
     Win32.EnumWindowsProc filterWindows;
     Win32.WinEventProc eventListener;
@@ -49,6 +52,9 @@ class Manager : IDisposable
         otherWindowPen.Dispose();
         pickedWindowPen.Dispose();
         activeDesktopBrush.Dispose();
+        windowBackgroundBrush.Dispose();
+        textBrush.Dispose();
+        font.Dispose();
     }
 
     public Manager(PictureBox box)
@@ -61,7 +67,10 @@ class Manager : IDisposable
         foregroundWindowPen = new Pen(Color.DarkGray);
         otherWindowPen = new Pen(Color.DimGray);
         pickedWindowPen = new Pen(Color.White);
-        activeDesktopBrush = new SolidBrush(Color.FromArgb(32, 255, 255, 255));
+        activeDesktopBrush = new SolidBrush(Color.FromArgb(24, 255, 255, 255));
+        windowBackgroundBrush = new SolidBrush(Color.FromArgb(48, 255, 255, 255));
+        textBrush = new SolidBrush(Color.White);
+        font = new Font("Segoe UI", 14);
 
         filterWindows = new Win32.EnumWindowsProc(FilterWindow);
         eventListener = new Win32.WinEventProc(EventListener);
@@ -224,30 +233,57 @@ class Manager : IDisposable
         if (IsInterestingWindow(window))
         {
             var desktopID = VirtualDesktop.DesktopManager.VirtualDesktopManager.GetWindowDesktopId(window);
-            var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
-            int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
-
-            Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
-            Win32.ClientToScreen(window, ref topLeft);
-
-            Win32.GetClientRect(window, out Win32.RECT rect);
-            int clientWidth = rect.Right;
-            int clientHeight = rect.Bottom;
-
-            windows.Add(new WindowInfo()
+            if (desktopID != Guid.Empty)
             {
-                handle = window,
-                rectangle = new Rectangle()
+                var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
+                int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
+
+                Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
+                Win32.ClientToScreen(window, ref topLeft);
+
+                Win32.GetClientRect(window, out Win32.RECT rect);
+                int clientWidth = rect.Right;
+                int clientHeight = rect.Bottom;
+
+                windows.Add(new WindowInfo()
                 {
-                    x = topLeft.X,
-                    y = topLeft.Y,
-                    width = clientWidth,
-                    height = clientHeight,
-                },
-                desktop = index
-            });
+                    handle = window,
+                    rectangle = new Rectangle()
+                    {
+                        x = topLeft.X,
+                        y = topLeft.Y,
+                        width = clientWidth,
+                        height = clientHeight,
+                    },
+                    desktop = index
+                });
+            }
         }
         return true; // continue enumeration
+    }
+
+    delegate void Paint(IntPtr window, int x, int y, int w, int h);
+    void PaintWindows(float scaleX, float scaleY, Paint paint)
+    {
+        // windows seems to list from front to back
+        // we want to paint from back to front
+        for (int i = windows.Count - 1; i >= 0; i--)
+        {
+            var window = windows[i];
+
+            float x = (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX);
+            float y = (int)((window.rectangle.y - screen.y) * scaleY);
+            float width = (int)(window.rectangle.width * scaleX);
+            float height = (int)(window.rectangle.height * scaleY);
+
+            if (pickedWindow == window.handle)
+            {
+                x += pickMoveX;
+                y += pickMoveY;
+            }
+
+            paint(window.handle, (int)x, (int)y, (int)width, (int)height);
+        }
     }
 
     void DrawWindows()
@@ -256,39 +292,41 @@ class Manager : IDisposable
         {
             graphics.Clear(Color.Black);
 
-            float scaleX = pictureBox.ClientRectangle.Width / (float)screen.width / desktopCount;
-            float scaleY = pictureBox.ClientRectangle.Height / (float)screen.height;
+            float scaleX = pictureBox.Image.Width / (float)screen.width / desktopCount;
+            float scaleY = pictureBox.Image.Height / (float)screen.height;
 
             var currentDesktop = VirtualDesktop.Desktop.Current;
             var foreground = Win32.GetForegroundWindow();
             int activeDesktop = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
 
+            // highlight active desktop
             graphics.FillRectangle(activeDesktopBrush, screen.width * activeDesktop * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height);
 
-            // windows seems to list from front to back
-            // we want to paint from back to front
-            for (int i = windows.Count - 1; i >= 0; i--)
+            // draw translucent window previews
+            PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
             {
-                var window = windows[i];
+                graphics.FillRectangle(windowBackgroundBrush, x, y, width, height);
+            });
 
-                float x = (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX);
-                float y = (int)((window.rectangle.y - screen.y) * scaleY);
-                float width = (int)(window.rectangle.width * scaleX);
-                float height = (int)(window.rectangle.height * scaleY);
-
-                if (pickedWindow == window.handle)
-                {
-                    x += pickMoveX;
-                    y += pickMoveY;
-                }
-
+            // draw window borders
+            PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
+            {
                 var pen = otherWindowPen;
-                if (pickedWindow == window.handle)
+                if (pickedWindow == window)
                     pen = pickedWindowPen;
-                else if (foreground == window.handle)
+                else if (foreground == window)
                     pen = foregroundWindowPen;
                 graphics.DrawRectangle(pen, x, y, width, height);
-            }
+            });
+
+            // display virtual desktop number
+            StringFormat format = new StringFormat() {
+                LineAlignment = StringAlignment.Center,
+                Alignment = StringAlignment.Center,
+            };
+            for (int i = 1; i <= desktopCount; i++)
+                graphics.DrawString(i.ToString(), font, textBrush, 
+                    new RectangleF(screen.width * (i - 1) * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height), format);
         }
     }
 }
