@@ -82,12 +82,13 @@ namespace DebugDesktopManager
 
         static readonly Win32.WinEvents[] interestingEvents = 
         {
-            Win32.WinEvents.EVENT_SYSTEM_SWITCHEND,
+            Win32.WinEvents.EVENT_SYSTEM_SWITCHEND, // alt-tab
             Win32.WinEvents.EVENT_SYSTEM_MOVESIZEEND,
             Win32.WinEvents.EVENT_SYSTEM_MINIMIZESTART,
             Win32.WinEvents.EVENT_SYSTEM_MINIMIZEEND,
             Win32.WinEvents.EVENT_SYSTEM_FOREGROUND,
             Win32.WinEvents.EVENT_OBJECT_LOCATIONCHANGE,
+            Win32.WinEvents.EVENT_OBJECT_CREATE
         };
 
         void EventListener(IntPtr hWinEventHook, uint eventType,
