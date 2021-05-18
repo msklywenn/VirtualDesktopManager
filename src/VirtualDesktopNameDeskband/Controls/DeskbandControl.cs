@@ -5,6 +5,8 @@ namespace VirtualDesktopNameDeskband
 {
     public partial class DeskbandControl : UserControl
     {
+        Manager manager;
+
         protected override void OnLoad(EventArgs e)
         {
             base.OnLoad(e);
@@ -13,10 +15,12 @@ namespace VirtualDesktopNameDeskband
         public DeskbandControl()
         {
             InitializeComponent();
+            manager = new Manager(pictureBox1);
         }
 
         internal void Close()
         {
+            manager.Dispose();
         }
     }
 }
