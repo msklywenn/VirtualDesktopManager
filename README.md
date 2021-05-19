@@ -21,7 +21,6 @@ This is work in progress and buggy. There's no release yet.
 ## To do
 
 * Properly size the picture box (depending on number of desktops and deskband height)
-* Better picking
 * Window name on hover (with a tooltip)
 * Debugging (eg. seems to crash the explorer when removed)
 

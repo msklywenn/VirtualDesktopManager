@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using System.Numerics;
 
 class Manager : IDisposable
 {
@@ -12,6 +13,18 @@ class Manager : IDisposable
         public bool IsInside(float _x, float _y)
         {
             return _x >= x && _y >= y && _x <= x + width && _y <= y + height;
+        }
+        public float Area { get { return width * height; } }
+        public Vector2 Center
+        {
+            get
+            {
+                return new Vector2
+                {
+                    X = x + width * 0.5f,
+                    Y = y + height * 0.5f
+                };
+            }
         }
     }
 
@@ -137,14 +150,23 @@ class Manager : IDisposable
 
     WindowInfo PickWindow(int desktop, int x, int y)
     {
+        float sqDistance = float.MaxValue;
+        //Vector2 target = new Vector2 { X = x, Y = y };
+        WindowInfo best = WindowInfo.Null;
         foreach (var window in windows)
         {
             if (desktop == window.desktop && window.rectangle.IsInside(x, y))
             {
-                return window;
+                //float d = Vector2.DistanceSquared(target, window.rectangle.Center);
+                float d = window.rectangle.Area;
+                if (d < sqDistance)
+                {
+                    sqDistance = d;
+                    best = window;
+                }
             }
         }
-        return WindowInfo.Null;
+        return best;
     }
 
     void PictureBoxToDesktop(int x, int y, out int dx, out int dy, out int desktop)
