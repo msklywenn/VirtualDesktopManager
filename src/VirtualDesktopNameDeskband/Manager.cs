@@ -213,11 +213,11 @@ class Manager : IDisposable
             desktop.MoveWindow(pickedWindow);
             RefreshWindows();
 
-            int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
-            if (desktopIndex == current && pickedFromAnotherDesktop)
-            {
-                Win32.SetForegroundWindow(pickedWindow);
-            }
+            //int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
+            //if (desktopIndex == current && pickedFromAnotherDesktop)
+            //{
+            //    Win32.SetForegroundWindow(pickedWindow);
+            //}
         }
 
         pickedWindow = IntPtr.Zero;
