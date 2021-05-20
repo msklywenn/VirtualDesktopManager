@@ -74,6 +74,9 @@ public static class Win32
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowTextLength(IntPtr hWnd);
 
+    [DllImport("user32.dll", SetLastError = true)]
+    internal static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+
     /// <summary> Get the text for the window pointed to by hWnd </summary>
     public static string GetWindowText(IntPtr hWnd)
     {

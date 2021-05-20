@@ -28,7 +28,7 @@ class Manager : IDisposable
         }
     }
 
-    struct WindowInfo
+    class WindowInfo
     {
         public IntPtr handle;
         public Rectangle rectangle;
@@ -55,7 +55,7 @@ class Manager : IDisposable
     readonly List<WindowInfo> windows = new List<WindowInfo>();
     Rectangle screen;
     int desktopCount;
-    IntPtr pickedWindow = IntPtr.Zero;
+    WindowInfo pickedWindow = null;
     IntPtr hoveredWindow = IntPtr.Zero;
     int pickX, pickY;
     int pickMoveX, pickMoveY;
@@ -158,7 +158,7 @@ class Manager : IDisposable
 
     private void MouseLeft(object sender, EventArgs e)
     {
-        pickedWindow = IntPtr.Zero;
+        pickedWindow = null;
         DrawWindows();
         pictureBox.Refresh();
     }
@@ -197,7 +197,7 @@ class Manager : IDisposable
         {
             PictureBoxToDesktop(e.X, e.Y, out int x, out int y, out int desktop);
             WindowInfo window = PickWindow(desktop, x, y);
-            pickedWindow = window.handle;
+            pickedWindow = window;
             if (window.handle != IntPtr.Zero)
             {
                 pickX = e.X;
@@ -210,7 +210,7 @@ class Manager : IDisposable
 
     private void MouseMove(object sender, MouseEventArgs e)
     {
-        if (pickedWindow != IntPtr.Zero)
+        if (pickedWindow != null)
         {
             pickMoveX = e.X - pickX;
             pickMoveY = e.Y - pickY;
@@ -226,6 +226,13 @@ class Manager : IDisposable
         }
     }
 
+    int Clip(int x, int width, int area)
+    {
+        if (x < 0) return 0;
+        if (x + width > area) return area - width;
+        return x;
+    }
+
     private void ChangeDesktop(object sender, MouseEventArgs e)
     {
         var box = sender as PictureBox;
@@ -236,18 +243,23 @@ class Manager : IDisposable
         pickMoveX = e.X - pickX;
         pickMoveY = e.Y - pickY;
 
-        if (pickedWindow == IntPtr.Zero || (pickMoveX == 0 && pickMoveY == 0))
+        if (pickedWindow == null || (pickMoveX == 0 && pickMoveY == 0))
         {
             int desktopIndex = (int)Math.Floor(e.X * desktopCount / (float)box.Width);
             var desktop = VirtualDesktop.DesktopManager.GetDesktop(desktopIndex);
             VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.SwitchDesktop(desktop);
         }
-        else if (pickedWindow != IntPtr.Zero)
+        else if (pickedWindow != null)
         {
             int desktopIndex = (int)Math.Floor(e.X * desktopCount / (float)box.Width);
 
             var desktop = VirtualDesktop.Desktop.FromIndex(desktopIndex);
-            desktop.MoveWindow(pickedWindow);
+            desktop.MoveWindow(pickedWindow.handle);
+
+            int x = Clip(pickedWindow.rectangle.x + (int)(pickMoveX / (float)box.Width * screen.width * desktopCount) % screen.width, pickedWindow.rectangle.width, screen.width);
+            int y = Clip(pickedWindow.rectangle.y + (int)(pickMoveY / (float)box.Height * screen.height) % screen.height, pickedWindow.rectangle.height, screen.height);
+            Win32.MoveWindow(pickedWindow.handle, x, y, pickedWindow.rectangle.width, pickedWindow.rectangle.height, false);
+
             RefreshWindows();
 
             //int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
@@ -257,7 +269,7 @@ class Manager : IDisposable
             //}
         }
 
-        pickedWindow = IntPtr.Zero;
+        pickedWindow = null;
 
         DrawWindows();
         pictureBox.Refresh();
@@ -353,7 +365,7 @@ class Manager : IDisposable
             float width = (int)(window.rectangle.width * scaleX);
             float height = (int)(window.rectangle.height * scaleY);
 
-            if (pickedWindow == window.handle)
+            if (pickedWindow == window)
             {
                 x += pickMoveX;
                 y += pickMoveY;
@@ -382,7 +394,9 @@ class Manager : IDisposable
             // draw translucent window previews
             PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
             {
-                SolidBrush brush = (window == pickedWindow || window == hoveredWindow) ? hoveredWindowBrush : windowBackgroundBrush;
+                SolidBrush brush = ((pickedWindow != null && window == pickedWindow.handle) || window == hoveredWindow)
+                    ? hoveredWindowBrush 
+                    : windowBackgroundBrush;
                 graphics.FillRectangle(brush, x, y, width, height);
             });
 
@@ -390,7 +404,7 @@ class Manager : IDisposable
             PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
             {
                 var pen = otherWindowPen;
-                if (pickedWindow == window)
+                if (pickedWindow != null && pickedWindow.handle == window)
                     pen = pickedWindowPen;
                 else if (foreground == window)
                     pen = foregroundWindowPen;
