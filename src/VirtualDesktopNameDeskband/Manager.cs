@@ -133,7 +133,7 @@ class Manager : IDisposable
             IntPtr.Zero, eventListener, 0, 0, Win32.WinEventFlags.WINEVENT_OUTOFCONTEXT);
     }
 
-    static readonly Win32.WinEvents[] interestingEvents = 
+    static readonly Win32.WinEvents[] interestingEvents =
     {
         Win32.WinEvents.EVENT_SYSTEM_SWITCHEND, // alt-tab
         Win32.WinEvents.EVENT_SYSTEM_MOVESIZEEND,
@@ -395,7 +395,7 @@ class Manager : IDisposable
             PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
             {
                 SolidBrush brush = ((pickedWindow != null && window == pickedWindow.handle) || window == hoveredWindow)
-                    ? hoveredWindowBrush 
+                    ? hoveredWindowBrush
                     : windowBackgroundBrush;
                 graphics.FillRectangle(brush, x, y, width, height);
             });
@@ -416,12 +416,13 @@ class Manager : IDisposable
 
             // display virtual desktop number
             graphics.TextRenderingHint |= System.Drawing.Text.TextRenderingHint.AntiAlias;
-            StringFormat format = new StringFormat() {
+            StringFormat format = new StringFormat()
+            {
                 LineAlignment = StringAlignment.Center,
                 Alignment = StringAlignment.Center,
             };
             for (int i = 1; i <= desktopCount; i++)
-                graphics.DrawString(i.ToString(), font, textBrush, 
+                graphics.DrawString(i.ToString(), font, textBrush,
                     new RectangleF(screen.width * (i - 1) * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height), format);
         }
     }
