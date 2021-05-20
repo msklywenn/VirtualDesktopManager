@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Windows.Forms;
 using System.Numerics;
+using System.Windows.Forms;
 
 class Manager : IDisposable
 {
@@ -65,6 +65,7 @@ class Manager : IDisposable
     readonly Pen foregroundWindowPen;
     readonly Pen otherWindowPen;
     readonly Pen pickedWindowPen;
+    readonly Pen activeDesktopPen;
     readonly SolidBrush activeDesktopBrush;
     readonly SolidBrush windowBackgroundBrush;
     readonly SolidBrush hoveredWindowBrush;
@@ -80,11 +81,21 @@ class Manager : IDisposable
         foregroundWindowPen.Dispose();
         otherWindowPen.Dispose();
         pickedWindowPen.Dispose();
+        activeDesktopPen.Dispose();
         activeDesktopBrush.Dispose();
         windowBackgroundBrush.Dispose();
         hoveredWindowBrush.Dispose();
         textBrush.Dispose();
         font.Dispose();
+    }
+
+    Color Lerp(Color lhs, Color rhs, float alpha)
+    {
+        return Color.FromArgb(
+            (int)(lhs.A * alpha + rhs.A * (1f - alpha)),
+            (int)(lhs.R * alpha + rhs.R * (1f - alpha)),
+            (int)(lhs.G * alpha + rhs.G * (1f - alpha)),
+            (int)(lhs.B * alpha + rhs.B * (1f - alpha)));
     }
 
     public Manager(PictureBox box)
@@ -94,12 +105,16 @@ class Manager : IDisposable
         if (pictureBox.Image == null)
             pictureBox.Image = new Bitmap(pictureBox.ClientRectangle.Width, pictureBox.ClientRectangle.Height);
 
-        foregroundWindowPen = new Pen(Color.DarkGray);
-        otherWindowPen = new Pen(Color.DimGray);
-        pickedWindowPen = new Pen(Color.White);
-        activeDesktopBrush = new SolidBrush(Color.FromArgb(24, 255, 255, 255));
-        windowBackgroundBrush = new SolidBrush(Color.FromArgb(48, 255, 255, 255));
-        hoveredWindowBrush = new SolidBrush(Color.FromArgb(96, 255, 255, 255));
+        Color systemTint = Win32.GetSysColor(Win32.SysColor.COLOR_HIGHLIGHT);
+        Color windowTint = Win32.GetSysColor(Win32.SysColor.COLOR_WINDOW);
+        Color other = Color.FromArgb(96, windowTint.R, windowTint.G, windowTint.B);
+        otherWindowPen = new Pen(other);
+        foregroundWindowPen = new Pen(Lerp(other, windowTint, 0.5f));
+        pickedWindowPen = new Pen(windowTint);
+        activeDesktopPen = new Pen(systemTint);
+        activeDesktopBrush = new SolidBrush(Color.FromArgb(64, systemTint.R, systemTint.G, systemTint.B));
+        windowBackgroundBrush = new SolidBrush(Color.FromArgb(48, windowTint.R, windowTint.G, windowTint.B));
+        hoveredWindowBrush = new SolidBrush(Color.FromArgb(96, windowTint.R, windowTint.G, windowTint.B));
         textBrush = new SolidBrush(Color.White);
         font = new Font("Segoe UI", 14);
 
@@ -381,6 +396,9 @@ class Manager : IDisposable
                     pen = foregroundWindowPen;
                 graphics.DrawRectangle(pen, x, y, width, height);
             });
+
+            graphics.DrawRectangle(activeDesktopPen, screen.width * activeDesktop * scaleX, 0,
+                screen.width * scaleX - 1, pictureBox.Image.Height - 1);
 
             // display virtual desktop number
             graphics.TextRenderingHint |= System.Drawing.Text.TextRenderingHint.AntiAlias;
