@@ -249,7 +249,7 @@ class Manager : IDisposable
             var desktop = VirtualDesktop.DesktopManager.GetDesktop(desktopIndex);
             VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.SwitchDesktop(desktop);
         }
-        else if (pickedWindow != null)
+        else if (pickedWindow.handle != IntPtr.Zero)
         {
             int desktopIndex = (int)Math.Floor(e.X * desktopCount / (float)box.Width);
 
