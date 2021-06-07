@@ -170,18 +170,16 @@ class Manager : IDisposable
 
     WindowInfo PickWindow(int desktop, int x, int y)
     {
-        float sqDistance = float.MaxValue;
-        //Vector2 target = new Vector2 { X = x, Y = y };
+        float smallestArea = float.MaxValue;
         WindowInfo best = WindowInfo.Null;
         foreach (var window in windows)
         {
             if (desktop == window.desktop && window.rectangle.IsInside(x, y))
             {
-                //float d = Vector2.DistanceSquared(target, window.rectangle.Center);
                 float d = window.rectangle.Area;
-                if (d < sqDistance)
+                if (d < smallestArea)
                 {
-                    sqDistance = d;
+                    smallestArea = d;
                     best = window;
                 }
             }
