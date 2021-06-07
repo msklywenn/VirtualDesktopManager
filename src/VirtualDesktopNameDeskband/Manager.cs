@@ -7,7 +7,7 @@ using System.Windows.Forms;
 
 class Manager : IDisposable
 {
-    struct Rectangle
+    public struct Rectangle
     {
         public int x, y, width, height;
         public bool IsInside(float _x, float _y)
@@ -53,7 +53,7 @@ class Manager : IDisposable
 
     // Work variables
     readonly List<WindowInfo> windows = new List<WindowInfo>();
-    Rectangle screen;
+    public Rectangle screen { get; private set; }
     int desktopCount;
     WindowInfo pickedWindow = null;
     IntPtr hoveredWindow = IntPtr.Zero;
@@ -128,9 +128,15 @@ class Manager : IDisposable
         pictureBox.MouseMove += MouseMove;
         pictureBox.MouseUp += ChangeDesktop;
         pictureBox.MouseLeave += MouseLeft;
+        pictureBox.Resize += Resize;
 
         Win32.SetWinEventHook(interestingEvents.Min(), interestingEvents.Max(),
             IntPtr.Zero, eventListener, 0, 0, Win32.WinEventFlags.WINEVENT_OUTOFCONTEXT);
+    }
+
+    private void Resize(object sender, EventArgs e)
+    {
+        pictureBox.Image = new Bitmap(pictureBox.ClientRectangle.Width, pictureBox.ClientRectangle.Height);
     }
 
     static readonly Win32.WinEvents[] interestingEvents =
@@ -157,7 +163,6 @@ class Manager : IDisposable
         {
             RefreshWindows();
             DrawWindows();
-            pictureBox.Refresh();
         }
     }
 
@@ -165,7 +170,6 @@ class Manager : IDisposable
     {
         pickedWindow = null;
         DrawWindows();
-        pictureBox.Refresh();
     }
 
     WindowInfo PickWindow(int desktop, int x, int y)
@@ -218,14 +222,12 @@ class Manager : IDisposable
             pickMoveX = e.X - pickX;
             pickMoveY = e.Y - pickY;
             DrawWindows();
-            pictureBox.Refresh();
         }
         else
         {
             PictureBoxToDesktop(e.X, e.Y, out int x, out int y, out int desktop);
             hoveredWindow = PickWindow(desktop, x, y).handle;
             DrawWindows();
-            pictureBox.Refresh();
         }
     }
 
@@ -275,7 +277,6 @@ class Manager : IDisposable
         pickedWindow = null;
 
         DrawWindows();
-        pictureBox.Refresh();
     }
 
     bool IsInterestingWindow(IntPtr window)
@@ -439,5 +440,6 @@ class Manager : IDisposable
             }
         }
         catch { }
+        pictureBox.Refresh();
     }
 }

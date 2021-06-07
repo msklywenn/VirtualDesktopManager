@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace VirtualDesktopNameDeskband
@@ -21,6 +22,21 @@ namespace VirtualDesktopNameDeskband
         internal void Close()
         {
             manager.Dispose();
+        }
+
+        public Size GetPreferredSize()
+        {
+            float taskbarHeight = Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height;
+            float screenRatio = manager.screen.width / (float)manager.screen.height;
+            float height = taskbarHeight * 0.9f;
+            Size pref = new Size()
+            {
+                Width = (int)(height * screenRatio * VirtualDesktop.Desktop.Count),
+                Height = (int)height
+            };
+            pictureBox1.Parent.Size = pref;
+            pictureBox1.Size = pref;
+            return pref;
         }
     }
 }

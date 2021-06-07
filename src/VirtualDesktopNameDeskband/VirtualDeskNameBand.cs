@@ -1,5 +1,6 @@
 ﻿using SharpShell.Attributes;
 using SharpShell.SharpDeskBand;
+using System.Drawing;
 using System.Runtime.InteropServices;
 
 namespace VirtualDesktopNameDeskband
@@ -19,7 +20,8 @@ namespace VirtualDesktopNameDeskband
             ShowTitle = true,
             Title = "Virtual Desktop Manager",
             UseBackgroundColour = false,
-            AlwaysShowGripper = false
+            AlwaysShowGripper = false,
+            IsFixed = true
         };
 
         protected override void OnBandRemoved()
@@ -27,6 +29,16 @@ namespace VirtualDesktopNameDeskband
             deskbandControl?.Close();
 
             base.OnBandRemoved();
+        }
+
+        protected override Size GetMaximumSize()
+        {
+            return deskbandControl.GetPreferredSize();
+        }
+
+        protected override Size GetMinimumSize()
+        {
+            return deskbandControl.GetPreferredSize();
         }
     }
 }
