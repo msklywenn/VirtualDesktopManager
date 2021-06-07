@@ -28,14 +28,13 @@ namespace VirtualDesktopNameDeskband
         {
             float taskbarHeight = Screen.PrimaryScreen.Bounds.Height - Screen.PrimaryScreen.WorkingArea.Height;
             float screenRatio = manager.screen.width / (float)manager.screen.height;
-            float height = taskbarHeight * 0.9f;
+            float height = taskbarHeight * 0.8f;
             Size pref = new Size()
             {
                 Width = (int)(height * screenRatio * VirtualDesktop.Desktop.Count),
                 Height = (int)height
             };
             pictureBox1.Parent.Size = pref;
-            pictureBox1.Size = pref;
             return pref;
         }
     }

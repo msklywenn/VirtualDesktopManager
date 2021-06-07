@@ -136,7 +136,10 @@ class Manager : IDisposable
 
     private void Resize(object sender, EventArgs e)
     {
-        pictureBox.Image = new Bitmap(pictureBox.ClientRectangle.Width, pictureBox.ClientRectangle.Height);
+        pictureBox.ClientSize = pictureBox.Parent.ClientSize;
+        pictureBox.Image = new Bitmap(pictureBox.ClientSize.Width, pictureBox.ClientSize.Height);
+        pictureBox.Width = pictureBox.ClientSize.Width;
+        pictureBox.Height = pictureBox.ClientSize.Height;
     }
 
     static readonly Win32.WinEvents[] interestingEvents =
