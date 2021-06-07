@@ -20,10 +20,9 @@ This is work in progress and buggy. There's no release yet.
 
 ## To do
 
-* Properly size the picture box (depending on number of desktops and deskband height)
 * Window name on hover (with a tooltip)
-* Fix flickering
-* Debugging (eg. seems to crash the explorer when removed)
+* Fix flickering (it's only in debug app?)
+* Debugging (eg. seems to crash from time to time)
 
 ## License
 
