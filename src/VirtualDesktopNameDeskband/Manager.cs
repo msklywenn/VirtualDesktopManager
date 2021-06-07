@@ -144,11 +144,16 @@ class Manager : IDisposable
         Win32.WinEvents.EVENT_OBJECT_CREATE
     };
 
+    static readonly int[] uninterestingObjects =
+    {
+        -9, // OBJID_CURSOR
+        -8, // OBJID_CARET
+    };
+
     void EventListener(IntPtr hWinEventHook, uint eventType,
         IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-        const int OBJID_CURSOR = -9;
-        if (idObject != OBJID_CURSOR && interestingEvents.Contains((Win32.WinEvents)eventType))
+        if (!uninterestingObjects.Contains(idObject) && interestingEvents.Contains((Win32.WinEvents)eventType))
         {
             RefreshWindows();
             DrawWindows();
@@ -377,56 +382,60 @@ class Manager : IDisposable
 
     void DrawWindows()
     {
-        using (var graphics = Graphics.FromImage(pictureBox.Image))
+        try
         {
-            graphics.Clear(Color.Transparent);
-
-            float scaleX = pictureBox.Image.Width / (float)screen.width / desktopCount;
-            float scaleY = pictureBox.Image.Height / (float)screen.height;
-
-            var currentDesktop = VirtualDesktop.Desktop.Current;
-            var foreground = Win32.GetForegroundWindow();
-            int activeDesktop = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
-
-            // highlight active desktop
-            graphics.FillRectangle(activeDesktopBrush, screen.width * activeDesktop * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height);
-
-            scaleX = (pictureBox.Image.Width - 2) / (float)screen.width / desktopCount;
-            scaleY = (pictureBox.Image.Height - 2) / (float)screen.height;
-
-            // draw translucent window previews
-            PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
+            using (var graphics = Graphics.FromImage(pictureBox.Image))
             {
-                SolidBrush brush = ((pickedWindow != null && window == pickedWindow.handle) || window == hoveredWindow)
-                    ? hoveredWindowBrush
-                    : windowBackgroundBrush;
-                graphics.FillRectangle(brush, x, y, width, height);
-            });
+                graphics.Clear(Color.Transparent);
 
-            // draw window borders
-            PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
-            {
-                var pen = otherWindowPen;
-                if (pickedWindow != null && pickedWindow.handle == window)
-                    pen = pickedWindowPen;
-                else if (foreground == window)
-                    pen = foregroundWindowPen;
-                graphics.DrawRectangle(pen, x, y, width, height);
-            });
+                float scaleX = pictureBox.Image.Width / (float)screen.width / desktopCount;
+                float scaleY = pictureBox.Image.Height / (float)screen.height;
 
-            graphics.DrawRectangle(activeDesktopPen, screen.width * activeDesktop * scaleX, 0,
-                screen.width * scaleX - 1, pictureBox.Image.Height - 1);
+                var currentDesktop = VirtualDesktop.Desktop.Current;
+                var foreground = Win32.GetForegroundWindow();
+                int activeDesktop = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
 
-            // display virtual desktop number
-            graphics.TextRenderingHint |= System.Drawing.Text.TextRenderingHint.AntiAlias;
-            StringFormat format = new StringFormat()
-            {
-                LineAlignment = StringAlignment.Center,
-                Alignment = StringAlignment.Center,
-            };
-            for (int i = 1; i <= desktopCount; i++)
-                graphics.DrawString(i.ToString(), font, textBrush,
-                    new RectangleF(screen.width * (i - 1) * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height), format);
+                // highlight active desktop
+                graphics.FillRectangle(activeDesktopBrush, screen.width * activeDesktop * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height);
+
+                scaleX = (pictureBox.Image.Width - 2) / (float)screen.width / desktopCount;
+                scaleY = (pictureBox.Image.Height - 2) / (float)screen.height;
+
+                // draw translucent window previews
+                PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
+                {
+                    SolidBrush brush = ((pickedWindow != null && window == pickedWindow.handle) || window == hoveredWindow)
+                        ? hoveredWindowBrush
+                        : windowBackgroundBrush;
+                    graphics.FillRectangle(brush, x, y, width, height);
+                });
+
+                // draw window borders
+                PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
+                {
+                    var pen = otherWindowPen;
+                    if (pickedWindow != null && pickedWindow.handle == window)
+                        pen = pickedWindowPen;
+                    else if (foreground == window)
+                        pen = foregroundWindowPen;
+                    graphics.DrawRectangle(pen, x, y, width, height);
+                });
+
+                graphics.DrawRectangle(activeDesktopPen, screen.width * activeDesktop * scaleX, 0,
+                    screen.width * scaleX - 1, pictureBox.Image.Height - 1);
+
+                // display virtual desktop number
+                graphics.TextRenderingHint |= System.Drawing.Text.TextRenderingHint.AntiAlias;
+                StringFormat format = new StringFormat()
+                {
+                    LineAlignment = StringAlignment.Center,
+                    Alignment = StringAlignment.Center,
+                };
+                for (int i = 1; i <= desktopCount; i++)
+                    graphics.DrawString(i.ToString(), font, textBrush,
+                        new RectangleF(screen.width * (i - 1) * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height), format);
+            }
         }
+        catch { }
     }
 }
