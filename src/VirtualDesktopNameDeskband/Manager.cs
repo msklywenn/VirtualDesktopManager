@@ -324,35 +324,39 @@ class Manager : IDisposable
 
     bool FilterWindow(IntPtr window, IntPtr lParam)
     {
-        if (IsInterestingWindow(window))
+        try
         {
-            var desktopID = VirtualDesktop.DesktopManager.VirtualDesktopManager.GetWindowDesktopId(window);
-            if (desktopID != Guid.Empty)
+            if (IsInterestingWindow(window))
             {
-                var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
-                int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
-
-                Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
-                Win32.ClientToScreen(window, ref topLeft);
-
-                Win32.GetClientRect(window, out Win32.RECT rect);
-                int clientWidth = rect.Right;
-                int clientHeight = rect.Bottom;
-
-                windows.Add(new WindowInfo()
+                var desktopID = VirtualDesktop.DesktopManager.VirtualDesktopManager.GetWindowDesktopId(window);
+                if (desktopID != Guid.Empty)
                 {
-                    handle = window,
-                    rectangle = new Rectangle()
+                    var desktop = VirtualDesktop.DesktopManager.VirtualDesktopManagerInternal.FindDesktop(ref desktopID);
+                    int index = VirtualDesktop.DesktopManager.GetDesktopIndex(desktop);
+
+                    Win32.POINT topLeft = new Win32.POINT { X = 0, Y = 0 };
+                    Win32.ClientToScreen(window, ref topLeft);
+
+                    Win32.GetClientRect(window, out Win32.RECT rect);
+                    int clientWidth = rect.Right;
+                    int clientHeight = rect.Bottom;
+
+                    windows.Add(new WindowInfo()
                     {
-                        x = topLeft.X,
-                        y = topLeft.Y,
-                        width = clientWidth,
-                        height = clientHeight,
-                    },
-                    desktop = index
-                });
+                        handle = window,
+                        rectangle = new Rectangle()
+                        {
+                            x = topLeft.X,
+                            y = topLeft.Y,
+                            width = clientWidth,
+                            height = clientHeight,
+                        },
+                        desktop = index
+                    });
+                }
             }
         }
+        catch { }
         return true; // continue enumeration
     }
 
