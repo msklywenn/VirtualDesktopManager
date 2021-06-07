@@ -59,7 +59,7 @@ class Manager : IDisposable
     IntPtr hoveredWindow = IntPtr.Zero;
     int pickX, pickY;
     int pickMoveX, pickMoveY;
-    bool pickedFromAnotherDesktop;
+    //bool pickedFromAnotherDesktop;
 
     // Disposables
     readonly Pen foregroundWindowPen;
@@ -202,8 +202,8 @@ class Manager : IDisposable
             {
                 pickX = e.X;
                 pickY = e.Y;
-                int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
-                pickedFromAnotherDesktop = current != window.desktop;
+                //int current = VirtualDesktop.Desktop.FromDesktop(VirtualDesktop.Desktop.Current);
+                //pickedFromAnotherDesktop = current != window.desktop;
             }
         }
     }
@@ -360,10 +360,10 @@ class Manager : IDisposable
         {
             var window = windows[i];
 
-            float x = (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX);
-            float y = (int)((window.rectangle.y - screen.y) * scaleY);
-            float width = (int)(window.rectangle.width * scaleX);
-            float height = (int)(window.rectangle.height * scaleY);
+            float x = (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX) + 1;
+            float y = (int)((window.rectangle.y - screen.y) * scaleY) + 1;
+            float width = (int)(window.rectangle.width * scaleX) - 2;
+            float height = (int)(window.rectangle.height * scaleY) - 2;
 
             if (pickedWindow == window)
             {
