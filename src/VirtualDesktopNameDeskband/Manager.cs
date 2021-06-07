@@ -360,10 +360,10 @@ class Manager : IDisposable
         {
             var window = windows[i];
 
-            float x = (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX) + 1;
-            float y = (int)((window.rectangle.y - screen.y) * scaleY) + 1;
-            float width = (int)(window.rectangle.width * scaleX) - 2;
-            float height = (int)(window.rectangle.height * scaleY) - 2;
+            float x = 1 + (int)((window.rectangle.x - screen.x + screen.width * window.desktop) * scaleX);
+            float y = 1 + (int)((window.rectangle.y - screen.y) * scaleY);
+            float width = (int)(window.rectangle.width * scaleX);
+            float height = (int)(window.rectangle.height * scaleY);
 
             if (pickedWindow == window)
             {
@@ -390,6 +390,9 @@ class Manager : IDisposable
 
             // highlight active desktop
             graphics.FillRectangle(activeDesktopBrush, screen.width * activeDesktop * scaleX, 0, screen.width * scaleX, pictureBox.Image.Height);
+
+            scaleX = (pictureBox.Image.Width - 2) / (float)screen.width / desktopCount;
+            scaleY = (pictureBox.Image.Height - 2) / (float)screen.height;
 
             // draw translucent window previews
             PaintWindows(scaleX, scaleY, delegate (IntPtr window, int x, int y, int width, int height)
