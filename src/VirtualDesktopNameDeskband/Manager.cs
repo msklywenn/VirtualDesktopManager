@@ -33,6 +33,7 @@ class Manager : IDisposable
         public IntPtr handle;
         public Rectangle rectangle;
         public int desktop;
+        public string name;
 
         public static WindowInfo Null
         {
@@ -42,7 +43,8 @@ class Manager : IDisposable
                 {
                     handle = IntPtr.Zero,
                     rectangle = new Rectangle { x = 0, y = 0, width = -1, height = -1 },
-                    desktop = -1
+                    desktop = -1,
+                    name = string.Empty
                 };
             }
         }
@@ -76,6 +78,8 @@ class Manager : IDisposable
     readonly Win32.EnumWindowsProc filterWindows;
     readonly Win32.WinEventProc eventListener;
 
+    ToolTip tooltip;
+
     public void Dispose()
     {
         foregroundWindowPen.Dispose();
@@ -87,6 +91,7 @@ class Manager : IDisposable
         hoveredWindowBrush.Dispose();
         textBrush.Dispose();
         font.Dispose();
+        tooltip.Dispose();
     }
 
     Color Lerp(Color lhs, Color rhs, float alpha)
@@ -132,6 +137,8 @@ class Manager : IDisposable
 
         Win32.SetWinEventHook(interestingEvents.Min(), interestingEvents.Max(),
             IntPtr.Zero, eventListener, 0, 0, Win32.WinEventFlags.WINEVENT_OUTOFCONTEXT);
+
+        tooltip = new ToolTip();
     }
 
     private void Resize(object sender, EventArgs e)
@@ -153,16 +160,10 @@ class Manager : IDisposable
         Win32.WinEvents.EVENT_OBJECT_CREATE
     };
 
-    static readonly int[] uninterestingObjects =
-    {
-        -9, // OBJID_CURSOR
-        -8, // OBJID_CARET
-    };
-
     void EventListener(IntPtr hWinEventHook, uint eventType,
         IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-        if (!uninterestingObjects.Contains(idObject) && interestingEvents.Contains((Win32.WinEvents)eventType))
+        if (idObject > 0 && interestingEvents.Contains((Win32.WinEvents)eventType))
         {
             RefreshWindows();
             DrawWindows();
@@ -229,7 +230,9 @@ class Manager : IDisposable
         else
         {
             PictureBoxToDesktop(e.X, e.Y, out int x, out int y, out int desktop);
-            hoveredWindow = PickWindow(desktop, x, y).handle;
+            var hovered = PickWindow(desktop, x, y);
+            tooltip.SetToolTip(pictureBox, hovered.name);
+            hoveredWindow = hovered.handle;
             DrawWindows();
         }
     }
@@ -353,7 +356,8 @@ class Manager : IDisposable
                             width = clientWidth,
                             height = clientHeight,
                         },
-                        desktop = index
+                        desktop = index,
+                        name = Win32.GetWindowText(window)
                     });
                 }
             }
