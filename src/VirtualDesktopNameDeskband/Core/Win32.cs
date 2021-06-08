@@ -110,6 +110,24 @@ public static class Win32
         WINEVENT_INCONTEXT = 0x0004, // Events are SYNC, this causes your dll to be injected into every process
     }
 
+    public enum WinObjects : int
+    {
+        OBJID_WINDOW        = 0,
+        OBJID_SYSMENU       = -1,
+        OBJID_TITLEBAR      = -2,
+        OBJID_MENU          = -3,
+        OBJID_CLIENT        = -4,
+        OBJID_VSCROLL       = -5,
+        OBJID_HSCROLL       = -6,
+        OBJID_SIZEGRIP      = -7,
+        OBJID_CARET         = -8,
+        OBJID_CURSOR        = -9,
+        OBJID_ALERT         = -10,
+        OBJID_SOUND         = -11,
+        OBJID_QUERYCLASSNAMEIDX = -12,
+        OBJID_NATIVEOM      = -16,
+    }
+
     public enum WinEvents : uint
     {
         EVENT_AIA_START = 0xA000,

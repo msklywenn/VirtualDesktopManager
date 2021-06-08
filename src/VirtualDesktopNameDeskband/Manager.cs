@@ -144,7 +144,9 @@ class Manager : IDisposable
     private void Resize(object sender, EventArgs e)
     {
         pictureBox.ClientSize = pictureBox.Parent.ClientSize;
-        pictureBox.Image = new Bitmap(pictureBox.ClientSize.Width, pictureBox.ClientSize.Height);
+        int w = Math.Max(pictureBox.ClientSize.Width, 1);
+        int h = Math.Max(pictureBox.ClientSize.Height, 1);
+        pictureBox.Image = new Bitmap(w, h);
         pictureBox.Width = pictureBox.ClientSize.Width;
         pictureBox.Height = pictureBox.ClientSize.Height;
     }
@@ -157,13 +159,19 @@ class Manager : IDisposable
         Win32.WinEvents.EVENT_SYSTEM_MINIMIZEEND,
         Win32.WinEvents.EVENT_SYSTEM_FOREGROUND,
         Win32.WinEvents.EVENT_OBJECT_LOCATIONCHANGE,
-        Win32.WinEvents.EVENT_OBJECT_CREATE
+        Win32.WinEvents.EVENT_OBJECT_CREATE,
+        Win32.WinEvents.EVENT_OBJECT_DESTROY,
+        Win32.WinEvents.EVENT_OBJECT_UNCLOAKED,
+        Win32.WinEvents.EVENT_OBJECT_CLOAKED,
+        Win32.WinEvents.EVENT_OBJECT_HIDE,
+        Win32.WinEvents.EVENT_OBJECT_SHOW,
+        Win32.WinEvents.EVENT_SYSTEM_DESKTOPSWITCH,
     };
 
     void EventListener(IntPtr hWinEventHook, uint eventType,
         IntPtr hwnd, int idObject, int idChild, uint dwEventThread, uint dwmsEventTime)
     {
-        if (idObject > 0 && interestingEvents.Contains((Win32.WinEvents)eventType))
+        if ((Win32.WinObjects)idObject == Win32.WinObjects.OBJID_WINDOW && interestingEvents.Contains((Win32.WinEvents)eventType))
         {
             RefreshWindows();
             DrawWindows();
@@ -231,7 +239,8 @@ class Manager : IDisposable
         {
             PictureBoxToDesktop(e.X, e.Y, out int x, out int y, out int desktop);
             var hovered = PickWindow(desktop, x, y);
-            tooltip.SetToolTip(pictureBox, hovered.name);
+            if (hovered.handle != hoveredWindow)
+                tooltip.SetToolTip(pictureBox, hovered.name);
             hoveredWindow = hovered.handle;
             DrawWindows();
         }
