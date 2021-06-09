@@ -302,4 +302,21 @@ public static class Win32
         int encoded = (int)GetSysColor((int)sc);
         return System.Drawing.Color.FromArgb(255, (encoded >> 16) & 0xFF, (encoded >> 8) & 0xFF, encoded & 0xFF);
     }
+
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public struct APPBARDATA
+    {
+        public int cbSize; // initialize this field using: Marshal.SizeOf(typeof(APPBARDATA));
+        public IntPtr hWnd;
+        public uint uCallbackMessage;
+        public uint uEdge;
+        public RECT rc;
+        public int lParam;
+    }
+
+    public const int ABM_GETTASKBARPOS = 0x00000005;
+    
+    [DllImport("shell32.dll")]
+    public static extern IntPtr SHAppBarMessage(uint dwMessage, [In] ref APPBARDATA pData);
 }
