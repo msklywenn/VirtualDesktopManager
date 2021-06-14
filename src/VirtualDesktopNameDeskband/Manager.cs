@@ -241,7 +241,11 @@ class Manager : IDisposable
             PictureBoxToDesktop(e.X, e.Y, out int x, out int y, out int desktop);
             var hovered = PickWindow(desktop, x, y);
             if (hovered.handle != hoveredWindow)
+            {
+                tooltip.Active = false;
                 tooltip.SetToolTip(pictureBox, hovered.name);
+                tooltip.Active = true;
+            }
             hoveredWindow = hovered.handle;
             DrawWindows();
         }
