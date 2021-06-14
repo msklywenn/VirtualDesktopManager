@@ -287,8 +287,9 @@ class Manager : IDisposable
 
         pickMoveX = e.X - pickX;
         pickMoveY = e.Y - pickY;
+        float moveDistanceSq = pickMoveX * pickMoveX + pickMoveY * pickMoveY;
 
-        if (pickedWindow == null || pickedWindow.handle == IntPtr.Zero || (pickMoveX == 0 && pickMoveY == 0))
+        if (pickedWindow == null || pickedWindow.handle == IntPtr.Zero || moveDistanceSq < 4f)
         {
             int desktopIndex = (int)Math.Floor(e.X * desktopCount / (float)box.Width);
             var desktop = VirtualDesktop.DesktopManager.GetDesktop(desktopIndex);
