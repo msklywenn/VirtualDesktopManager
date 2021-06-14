@@ -134,6 +134,7 @@ class Manager : IDisposable
         pictureBox.MouseUp += ChangeDesktop;
         pictureBox.MouseLeave += MouseLeft;
         pictureBox.Resize += Resize;
+        pictureBox.MouseWheel += SwitchDesktop;
 
         Win32.SetWinEventHook(interestingEvents.Min(), interestingEvents.Max(),
             IntPtr.Zero, eventListener, 0, 0, Win32.WinEventFlags.WINEVENT_OUTOFCONTEXT);
@@ -251,6 +252,26 @@ class Manager : IDisposable
         if (x < 0) return 0;
         if (x + width > area) return area - width;
         return x;
+    }
+
+    private void SwitchDesktop(object sender, MouseEventArgs e)
+    {
+        if (e.Delta < 0f)
+        {
+            var left = VirtualDesktop.Desktop.Current.Left;
+            if (left != null)
+                left.MakeVisible();
+            else
+                VirtualDesktop.Desktop.FromIndex(VirtualDesktop.Desktop.Count - 1).MakeVisible();
+        } 
+        else if (e.Delta > 0f)
+        {
+            var right = VirtualDesktop.Desktop.Current.Right;
+            if (right != null)
+                right.MakeVisible();
+            else
+                VirtualDesktop.Desktop.FromIndex(0).MakeVisible();
+        }
     }
 
     private void ChangeDesktop(object sender, MouseEventArgs e)
