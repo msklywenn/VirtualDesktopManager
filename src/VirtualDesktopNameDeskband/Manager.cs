@@ -43,7 +43,7 @@ class Manager : IDisposable
         float height = taskbarHeight * 0.8f;
         Size pref = new Size()
         {
-            Width = (int)(height * screenRatio * VirtualDesktop.Desktop.Count) + (VirtualDesktop.Desktop.Count - 1),
+            Width = (int)(height * screenRatio * VirtualDesktop.Desktop.Count) + VirtualDesktop.Desktop.Count,
             Height = (int)height
         };
 
